@@ -6,7 +6,7 @@ import subprocess
 from subprocess import *
 import codecs
 
-__version__ = "2.2.1"
+__version__ = "2.2.2"
 
 def check_output(*popenargs, **kwargs):
     """ Imported function from Python 2.7.x because it is not present in Python 2.6.x """
@@ -33,6 +33,7 @@ def show_help(x):
     -a:     All files in current working directory
     -n:     Sort by name
     -N:     Sort by name (natural)
+    -D:     Sort by file/dir modification date
     -s:     Sort by size
     -p:     Hide perc column
     -r:     reverse list (even if not sorted)
@@ -55,6 +56,7 @@ flist = []
 options = {'sort_name': False,
            'sort_name_natural': False,
            'sort_size': False,
+           'sort_date': False,
            'reverse': False,
            'all': False,
            'perc': True,
@@ -69,6 +71,7 @@ option_map = {
     's': lambda x: setopt('sort_size', True),
     'n': lambda x: setopt('sort_name', True),
     'N': lambda x: setopt('sort_name_natural', True),
+    'D': lambda x: setopt('sort_date', True),
     'r': lambda x: setopt('reverse', True),
     'a': lambda x: setopt('all', True),
     'p': lambda x: setopt('perc', False),
@@ -236,42 +239,90 @@ def undot(s):
         f = f[1:]
     return os.path.join(d,f)
 
-def sorting(by_name, natural, by_size, data):
-    def cmp_name(a,b):
-        ta = a[1]
-        tb = b[1]
+date_kb = {}
+
+def sorting(options, data):
+
+    # function for choosing the right comparer
+    def choose_compare(by_name, natural, by_size, by_date):
+        def cmp_name(a,b):
+            ta = a[1]
+            tb = b[1]
+            if natural:
+                ta = undot(ta)
+                tb = undot(tb)
+            if ta<tb:
+                return -1
+            elif ta==tb:
+                return 0
+            else:
+                return 1
+
+        def cmp_size(a,b):
+            ka = int(a[0])
+            kb = int(b[0])
+            return ka - kb
+
+        def cmp_date(a,b):
+            global date_kb
+
+            na = a[1]
+            nb = b[1]
+            
+            da = date_kb.get(na, None)
+            db = date_kb.get(nb, None)
+
+            def get_mtime(path):
+                s = os.stat(path)
+                return s.st_mtime
+            if da is None:
+                da = get_mtime(na)
+                date_kb[na] = da
+            if db is None:
+                db = get_mtime(nb)
+                date_kb[nb] = db
+
+            if da < db:
+                return -1
+            elif da > db:
+                return 1
+            else:
+                return 0
+
         if natural:
-            ta = undot(ta)
-            tb = undot(tb)
-        if ta<tb:
-            return -1
-        elif ta==tb:
-            return 0
-        else:
-            return 1
+            by_name = True
 
-    def cmp_size(a,b):
-        ka = int(a[0])
-        kb = int(b[0])
-        return ka - kb
+        functions = []
+        if by_name:
+            functions.append(cmp_name)
+        if by_size:
+            functions.append(cmp_size)
+        if by_date:
+            functions.append(cmp_date)
 
-    def cmp_combined(a,b):
-        r = cmp_size(a,b)
-        if r == 0:
-            r = cmp_name(a,b)
-        return r
+            
+        if len(functions)==0:
+            # No sorting
+            return None
 
-    if natural:
-        by_name = True
+        # One or more criteria has been chosen
+        def cmp_combined(a,b):
+            """ sort by applying all selected criteria """
+            r = 0
+            for f in functions:
+                r = f(a,b)
+                if r != 0:
+                    return r
+            return r
+        return cmp_combined
 
-    if by_name and by_size:
-        return sorted(data,cmp_combined)
-    elif by_name:
-        return sorted(data,cmp_name)
-    elif by_size:
-        return sorted(data,cmp_size)
-    else:
+    # Choose comparer and apply it, if found
+    cmp_func = choose_compare(options['sort_name'],options['sort_name_natural'],options['sort_size'],options['sort_date'])
+    if cmp_func is None:
+        # No sorting
         return data
+    # do sorting
+    return sorted(data,cmp_func)
 
 def identity(a):
     return a
@@ -281,7 +332,7 @@ if total_k==0:
     total_k=1
 if max_k==0:
     max_k=1
-data = [ (int(k),n, (float(k)*100./total_k), (float(k)*100./max_k)) for k,n in rev(sorting(options['sort_name'],options['sort_name_natural'],options['sort_size'],dirs)) ]
+data = [ (int(k),n, (float(k)*100./total_k), (float(k)*100./max_k)) for k,n in rev(sorting(options,dirs)) ]
 
 def hr(k):
     if k<1024:
