@@ -6,7 +6,7 @@ import subprocess
 from subprocess import *
 import codecs
 
-__version__ = "2.1"
+__version__ = "2.2.1"
 
 def check_output(*popenargs, **kwargs):
     """ Imported function from Python 2.7.x because it is not present in Python 2.6.x """
@@ -32,6 +32,7 @@ def show_help(x):
     -h:     Show this help
     -a:     All files in current working directory
     -n:     Sort by name
+    -N:     Sort by name (natural)
     -s:     Sort by size
     -p:     Hide perc column
     -r:     reverse list (even if not sorted)
@@ -52,6 +53,7 @@ def unknown(cmd):
 
 flist = []
 options = {'sort_name': False,
+           'sort_name_natural': False,
            'sort_size': False,
            'reverse': False,
            'all': False,
@@ -66,6 +68,7 @@ option_map = {
     'h': show_help,
     's': lambda x: setopt('sort_size', True),
     'n': lambda x: setopt('sort_name', True),
+    'N': lambda x: setopt('sort_name_natural', True),
     'r': lambda x: setopt('reverse', True),
     'a': lambda x: setopt('all', True),
     'p': lambda x: setopt('perc', False),
@@ -227,11 +230,22 @@ dirs = [ x.split("\t") for x in out.split("\n") if len(x)>0 ]
 total_k = sum([ int(a) for a,b in dirs ])
 max_k = max([ int(a) for a,b in dirs ])
 
-def sorting(by_name, by_size, data):
+def undot(s):
+    d, f = os.path.dirname(s), os.path.basename(s)
+    if f[0] == '.':
+        f = f[1:]
+    return os.path.join(d,f)
+
+def sorting(by_name, natural, by_size, data):
     def cmp_name(a,b):
-        if a[1]<b[1]:
+        ta = a[1]
+        tb = b[1]
+        if natural:
+            ta = undot(ta)
+            tb = undot(tb)
+        if ta<tb:
             return -1
-        elif a[1]==b[1]:
+        elif ta==tb:
             return 0
         else:
             return 1
@@ -247,6 +261,9 @@ def sorting(by_name, by_size, data):
             r = cmp_name(a,b)
         return r
 
+    if natural:
+        by_name = True
+
     if by_name and by_size:
         return sorted(data,cmp_combined)
     elif by_name:
@@ -260,7 +277,11 @@ def identity(a):
     return a
     
 rev = { True: reversed, False: identity}[options['reverse']]
-data = [ (int(k),n, (float(k)*100./total_k), (float(k)*100./max_k)) for k,n in rev(sorting(options['sort_name'],options['sort_size'],dirs)) ]
+if total_k==0:
+    total_k=1
+if max_k==0:
+    max_k=1
+data = [ (int(k),n, (float(k)*100./total_k), (float(k)*100./max_k)) for k,n in rev(sorting(options['sort_name'],options['sort_name_natural'],options['sort_size'],dirs)) ]
 
 def hr(k):
     if k<1024:
