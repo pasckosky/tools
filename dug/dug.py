@@ -6,7 +6,47 @@ import subprocess
 from subprocess import *
 import codecs
 
-__version__ = "2.2.2"
+__version__ = "2.3"
+
+# ANSI COLOR SECTION
+
+def rgb(r,g,b, bgnd=False):
+    assert( 0 <= r <=5)
+    assert( 0 <= g <=5)
+    assert( 0 <= b <=5)
+    code = 48 if bgnd else 38
+    return "\x1b[%d;5;%dm"%(code,16+b+6*g+36*r)
+
+def gray(l, bgnd=False):
+    assert( 0 <= l <= 23)
+    code = 48 if bgnd else 38
+    return "\x1b[%d;5;%dm"%(code,232+l)
+
+def reset_color():
+    return "\x1b[0m"
+
+def std(l, bgnd=False):
+    assert(0<=l<=15)
+    code = 48 if bgnd else 38
+    return "\x1b[%d;5;%dm"%(code,l)
+
+ASCII_ONLY = 1
+T16COLORS = 2
+T256COLORS = 3
+
+def typeofterm():
+    term = os.environ.get("TERM","")
+    if term.endswith("256color"):
+        return T256COLORS
+    elif term!="":
+        return T16COLORS
+    else:
+        return ASCII_ONLY
+
+
+
+#END of ANSI
+    
 
 def check_output(*popenargs, **kwargs):
     """ Imported function from Python 2.7.x because it is not present in Python 2.6.x """
@@ -39,6 +79,7 @@ def show_help(x):
     -r:     reverse list (even if not sorted)
     -w:     dynamic bar length (expands to half terminal)
     -z:     poor's man graphics
+    -c:     colorize output
     """)
     p("")
     p("""Special options:
@@ -62,6 +103,8 @@ options = {'sort_name': False,
            'perc': True,
            'wide': False,
            'utf8': True,
+           'color': False,
+           'ncolors': typeofterm(),
            }
 def setopt(key,value):
     options[key] = value
@@ -77,7 +120,33 @@ option_map = {
     'p': lambda x: setopt('perc', False),
     'w': lambda x: setopt('wide', True),
     'z': lambda x: setopt('utf8', False),
+    'c': lambda x: setopt('color', True),
     }
+
+
+def p_ok(text, on_err=False):
+    fout = sys.stderr if on_err else sys.stdout
+    if not options['color'] or options["ncolors"] == ASCII_ONLY:
+        print >>fout, text
+    else:
+        print >>fout, "%s%s%s"%(std(2),text,reset_color())
+
+def p_info(text, on_err=False):
+    fout = sys.stderr if on_err else sys.stdout
+    if not options['color'] or options["ncolors"] == ASCII_ONLY:
+        print >>fout, text
+    else:
+        print >>fout, "%s%s%s"%(std(3),text,reset_color())
+
+def p_err(text):
+    if not options['color'] or options["ncolors"] == ASCII_ONLY:
+        print >>sys.stderr, text
+    else:
+        print >>sys.stderr, "%s%s%s"%(std(4),text,reset_color())
+
+def p_out(text, on_err=False):
+    fout = sys.stderr if on_err else sys.stdout
+    print >>fout, text
 
 def request_http():
     try:
@@ -95,7 +164,7 @@ def request_http():
             r.close()
             return page
         else:
-            print >> sys.stderr, "Errore %d"%r.status_code
+            p_err("Error %d on HTTP request"%r.status_code)
             r.close()
             return ""
 
@@ -106,7 +175,7 @@ def request_http():
         try:
             page = f.read()
         except:
-            print >> sys.stderr, "Errore"
+            p_err("Error on HTTP request")
             page = ""    
         f.close()
         return page
@@ -117,7 +186,8 @@ def check_version(ref_version):
     fn_get = request_http()
     lastest_url = "https://dl.dropboxusercontent.com/u/1412272/Dug/lastest"
     lastest_version = fn_get(lastest_url).strip()
-    print "Lastes version is %s\nYou have version %s"%(lastest_version, ref_version)
+    p_ok ("Lastes version is %s"%lastest_version)
+    p_info ("You have version %s"%ref_version)
     sys.exit(0)
     
 def download_last(ref_version, dest_fname, update):
@@ -126,27 +196,27 @@ def download_last(ref_version, dest_fname, update):
     lastest_version = fn_get(lastest_url).strip()
     
     if update and lastest_version == ref_version:
-        print "You already have the last version"
+        p_ok("You already have the last version")
         sys.exit(0)
     if update:
-        print "You have version %s, downloading version %s"%(ref_version,lastest_version)
+        p_info("You have version %s, downloading version %s"%(ref_version,lastest_version))
     
     if lastest_version == "":
-        print "Errors while checking lastest version"
+        p_err("Errors while checking lastest version")
         sys.exit(1)
     ver_url = "https://dl.dropboxusercontent.com/u/1412272/Dug/dug_%s.py"%lastest_version
     script_file = fn_get(ver_url)
     if script_file == "":
-        print "Errors while getting lastest version"
+        p_err("Errors while getting lastest version")
         sys.exit(1)
         
     fout = open(dest_fname,"w")
     utf8 = codecs.getwriter('utf8')
     utf8(fout).write(script_file)
     fout.close()
-    print "File version %s has been saved as %s"%(lastest_version,dest_fname)
+    p_ok("File version %s has been saved as %s"%(lastest_version,dest_fname))
     if not update:
-        print "Move it wherever you please"
+        p_info("Move it wherever you please")
     sys.exit(0)
     
 
@@ -207,7 +277,7 @@ def get_stdin():
     return [ x.strip() for x in y.split("\n") if len(x.strip())!=0]
 
 if None in flist:
-    print >> sys.stderr, "Getting list from stdin"
+    p_info("Getting list from stdin",True)
     stdin = get_stdin()
     none_done = False
     flist1 = []
@@ -225,7 +295,7 @@ cmd = [ "du", "-sk" ] + flist
 try:
     out = check_output(cmd)
 except CalledProcessError,e:
-    print >> sys.stderr, "Some errors found while executing command. Output can be inaccurate"
+    p_err("Some errors found while executing command. Output can be inaccurate")
     out = e.output
 
 dirs = [ x.split("\t") for x in out.split("\n") if len(x)>0 ]
@@ -362,11 +432,25 @@ def bar(p, nmax, beauty):
     ni = int(math.floor(n))
     nf = int(math.floor((n - ni)*len(s)))
     if ni == nmax:
-        return s[-1]*nmax
+        s = s[-1]*nmax
     elif beauty:  
-        return u"%s%s%s"%(s[-1]*ni,s[nf],s[0]*(nmax-ni-1))
+        s = u"%s%s%s"%(s[-1]*ni,s[nf],s[0]*(nmax-ni-1))
     else:
-        return "%s%s%s"%(s[-1]*ni,s[nf],s[0]*(nmax-ni-1))
+        s = "%s%s%s"%(s[-1]*ni,s[nf],s[0]*(nmax-ni-1))
+
+    if not options['color'] or options["ncolors"] == ASCII_ONLY:
+        return s
+    elif options["ncolors"] == T16COLORS:
+        if p <= 33.33:
+            col = 2 # green
+        elif p <= 66.66:
+            col = 3 # yellow
+        else:
+            col = 4 # red
+        return u"%s%s%s"%(std(col),s,reset_color())
+    else:
+        pc = p/100.*5
+        return u"%d-%s%s%s"%(pc,rgb(pc,5-pc,0),s,reset_color())
 
 fmt = u"%(size)s %(perc)s %(bar)s %(name)s" if options['perc'] else u"%(size)s %(bar)s %(name)s"
 
@@ -391,12 +475,12 @@ else:
    
         
 for k,n,p,b in data:
-    print fmt%{'size':ralign(hr(k),10),
+    p_out(fmt%{'size':ralign(hr(k),10),
                'perc':ralign("%.2f%%"%p, 7),
                'bar':bar(b,lenbar,beauty),
                'name':n.decode('utf-8')
-               }
-print fmt%{'size':ralign(hr(total_k),10),
+               })
+p_out(fmt%{'size':ralign(hr(total_k),10),
            'perc':ralign("100%", 7),
            'bar':ralign("",lenbar),
-           'name': "Total"}
+           'name': "Total"})
