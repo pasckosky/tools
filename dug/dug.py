@@ -6,7 +6,7 @@ import subprocess
 from subprocess import *
 import codecs
 
-__version__ = "2.3.1"
+__version__ = "2.3.2"
 
 # ANSI COLOR SECTION
 
@@ -145,7 +145,7 @@ def p_err(text):
     if not options['color'] or options["ncolors"] == ASCII_ONLY:
         print >>sys.stderr, text
     else:
-        print >>sys.stderr, "%s%s%s"%(std(4),text,reset_color())
+        print >>sys.stderr, "%s%s%s"%(std(1),text,reset_color())
 
 def p_out(text, on_err=False):
     fout = sys.stderr if on_err else sys.stdout
@@ -452,7 +452,7 @@ def bar(p, nmax, beauty):
                 "r": s[-l1:],
                 "cg": std(2),
                 "cy": std(3),
-                "cr": std(4),
+                "cr": std(1),
                 "end": reset_color()
                 }
             return u"%(cg)s%(g)s%(cy)s%(y)s%(cr)s%(r)s%(end)s"%data
@@ -467,7 +467,7 @@ def bar(p, nmax, beauty):
         elif p <= 66.66:
             col = 3 # yellow
         else:
-            col = 4 # red
+            col = 1 # red
         return u"%s%s%s"%(std(col),s,reset_color())
     else:
         pc = p/100.*5
