@@ -457,8 +457,9 @@ def bar(p, nmax, beauty):
                 }
             return u"%(cg)s%(g)s%(cy)s%(y)s%(cr)s%(r)s%(end)s"%data
         else:
-            ns = nmax/6
+            ns = int(round(nmax/6.))
             sect = u"".join([ u"".join((rgb(x,5-x,0),s[x*ns:(x+1)*ns])) for x in range(6) ])
+            sect+= s[6*ns:]
             return sect+reset_color()
     elif options["ncolors"] == T16COLORS:
         if p <= 33.33:
