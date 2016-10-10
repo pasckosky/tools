@@ -6,7 +6,7 @@ import subprocess
 from subprocess import *
 import codecs
 
-__version__ = "2.3"
+__version__ = "2.3.1"
 
 # ANSI COLOR SECTION
 
@@ -80,6 +80,7 @@ def show_help(x):
     -w:     dynamic bar length (expands to half terminal)
     -z:     poor's man graphics
     -c:     colorize output
+    -C:     vertical colorization (does not imply -c)
     """)
     p("")
     p("""Special options:
@@ -104,6 +105,7 @@ options = {'sort_name': False,
            'wide': False,
            'utf8': True,
            'color': False,
+           'colorvert': False,
            'ncolors': typeofterm(),
            }
 def setopt(key,value):
@@ -121,6 +123,7 @@ option_map = {
     'w': lambda x: setopt('wide', True),
     'z': lambda x: setopt('utf8', False),
     'c': lambda x: setopt('color', True),
+    'C': lambda x: setopt('colorvert', True),
     }
 
 
@@ -440,6 +443,23 @@ def bar(p, nmax, beauty):
 
     if not options['color'] or options["ncolors"] == ASCII_ONLY:
         return s
+    elif options['colorvert']:
+        if options["ncolors"] == T16COLORS:
+            l1 = nmax/3
+            data = {
+                "g": s[:l1],
+                "y": s[l1:-l1],
+                "r": s[-l1:],
+                "cg": std(2),
+                "cy": std(3),
+                "cr": std(4),
+                "end": reset_color()
+                }
+            return u"%(cg)s%(g)s%(cy)s%(y)s%(cr)s%(r)s%(end)s"%data
+        else:
+            ns = nmax/6
+            sect = u"".join([ u"".join((rgb(x,5-x,0),s[x*ns:(x+1)*ns])) for x in range(6) ])
+            return sect+reset_color()
     elif options["ncolors"] == T16COLORS:
         if p <= 33.33:
             col = 2 # green
@@ -450,7 +470,7 @@ def bar(p, nmax, beauty):
         return u"%s%s%s"%(std(col),s,reset_color())
     else:
         pc = p/100.*5
-        return u"%d-%s%s%s"%(pc,rgb(pc,5-pc,0),s,reset_color())
+        return u"%s%s%s"%(rgb(pc,5-pc,0),s,reset_color())
 
 fmt = u"%(size)s %(perc)s %(bar)s %(name)s" if options['perc'] else u"%(size)s %(bar)s %(name)s"
 
