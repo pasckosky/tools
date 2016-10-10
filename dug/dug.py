@@ -80,7 +80,7 @@ def show_help(x):
     -w:     dynamic bar length (expands to half terminal)
     -z:     poor's man graphics
     -c:     colorize output
-    -C:     vertical colorization (does not imply -c)
+    -C:     vertical colorization 
     """)
     p("")
     p("""Special options:
@@ -123,7 +123,7 @@ option_map = {
     'w': lambda x: setopt('wide', True),
     'z': lambda x: setopt('utf8', False),
     'c': lambda x: setopt('color', True),
-    'C': lambda x: setopt('colorvert', True),
+    'C': lambda x: (setopt('colorvert', True), setopt('color',True)),
     }
 
 
