@@ -112,7 +112,17 @@ def main(args):
     filename = []
     while len(args)>0:
         o = args.pop()
-        if o == "-T":
+        if o == "-h":
+            print """Opzioni:
+
+-q/+q  disattiva/attiva header (diff mode)
+-w <n> n bytes per riga (def: 16)
+-a/+a  disattiva/attiva colonna ascii
+-x/+x  disattiva/attiva colonna hex
+-c/-C  range di indirizzi (-c in decimale, -C in esadecimale
+"""
+            exit(0)  
+        elif o == "-T":
             test()
             exit(0)
         elif o == "-q":
