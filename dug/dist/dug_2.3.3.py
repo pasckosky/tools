@@ -187,7 +187,7 @@ def request_http():
 
 def check_version(ref_version):
     fn_get = request_http()
-    lastest_url = "https://raw.githubusercontent.com/pasckosky/tools/master/dug/lastest"
+    lastest_url = "https://raw.githubusercontent.com/pasckosky/tools/master/dug/dist/lastest"
     lastest_version = fn_get(lastest_url).strip()
     p_ok ("Lastes version is %s"%lastest_version)
     p_info ("You have version %s"%ref_version)
@@ -195,7 +195,7 @@ def check_version(ref_version):
     
 def download_last(ref_version, dest_fname, update):
     fn_get = request_http()
-    lastest_url = "https://raw.githubusercontent.com/pasckosky/tools/master/dug/lastest"
+    lastest_url = "https://raw.githubusercontent.com/pasckosky/tools/master/dug/dist/lastest"
     lastest_version = fn_get(lastest_url).strip()
     
     if update and lastest_version == ref_version:
@@ -207,7 +207,7 @@ def download_last(ref_version, dest_fname, update):
     if lastest_version == "":
         p_err("Errors while checking lastest version")
         sys.exit(1)
-    ver_url = "https://raw.githubusercontent.com/pasckosky/tools/master/dug/dug_%s.py"%lastest_version
+    ver_url = "https://raw.githubusercontent.com/pasckosky/tools/master/dug/dist/dug_%s.py"%lastest_version
     script_file = fn_get(ver_url)
     if script_file == "":
         p_err("Errors while getting lastest version")
