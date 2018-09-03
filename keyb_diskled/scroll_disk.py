@@ -10,6 +10,9 @@ from subprocess import *
 
 last_v = None
 
+# The code to demonize has been stolen here:
+# http://code.activestate.com/recipes/66012-fork-a-daemon-process-on-unix/    
+
 def check_output(*popenargs, **kwargs):
     """ Imported function from Python 2.7.x because it is not present in Python 2.6.x """
     if 'stdout' in kwargs:
