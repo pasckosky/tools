@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 import sys, os, re, glob, math
 import subprocess
 from subprocess import *
 import codecs
+from functools import cmp_to_key
 
-__version__ = "2.3.3"
+__version__ = "3.0.0"
 
 # ANSI COLOR SECTION
 
@@ -46,7 +49,7 @@ def typeofterm():
 
 
 #END of ANSI
-    
+
 
 def check_output(*popenargs, **kwargs):
     """ Imported function from Python 2.7.x because it is not present in Python 2.6.x """
@@ -64,7 +67,7 @@ def check_output(*popenargs, **kwargs):
 
 def show_help(x):
     def p(x):
-        print >> sys.stderr, x
+        print(x, file=sys.stderr)
     p("DUG version %s"%__version__)
     p("Usage %s [options] <dir and file list>"%sys.argv[0])
     p("""Options:
@@ -80,7 +83,7 @@ def show_help(x):
     -w:     dynamic bar length (expands to half terminal)
     -z:     poor's man graphics
     -c:     colorize output
-    -C:     vertical colorization 
+    -C:     vertical colorization
     """)
     p("")
     p("""Special options:
@@ -91,7 +94,7 @@ def show_help(x):
     sys.exit(1)
 
 def unknown(cmd):
-    print >> sys.stderr, "Unknown option '%s'"%cmd
+    print("Unknown option '%s'"%cmd, file=sys.stderr)
     show_help(None)
 
 flist = []
@@ -130,26 +133,26 @@ option_map = {
 def p_ok(text, on_err=False):
     fout = sys.stderr if on_err else sys.stdout
     if not options['color'] or options["ncolors"] == ASCII_ONLY:
-        print >>fout, text
+        print(text, file=fout)
     else:
-        print >>fout, "%s%s%s"%(std(2),text,reset_color())
+        print("%s%s%s"%(std(2),text,reset_color()), file=fout)
 
 def p_info(text, on_err=False):
     fout = sys.stderr if on_err else sys.stdout
     if not options['color'] or options["ncolors"] == ASCII_ONLY:
-        print >>fout, text
+        print(text, file=fout)
     else:
-        print >>fout, "%s%s%s"%(std(3),text,reset_color())
+        print("%s%s%s"%(std(3),text,reset_color()), file=fout)
 
 def p_err(text):
     if not options['color'] or options["ncolors"] == ASCII_ONLY:
-        print >>sys.stderr, text
+        print(text, file=sys.stderr)
     else:
-        print >>sys.stderr, "%s%s%s"%(std(1),text,reset_color())
+        print("%s%s%s"%(std(1),text,reset_color()), file=sys.stderr)
 
 def p_out(text, on_err=False):
     fout = sys.stderr if on_err else sys.stdout
-    print >>fout, text
+    print(text, file=fout)
 
 def request_http():
     try:
@@ -157,7 +160,7 @@ def request_http():
         import requests
         advanced = True
     except:
-        import urllib2
+        import urllib.request, urllib.error, urllib.parse
         advanced = False
 
     def request_page_advanced(url):
@@ -172,17 +175,17 @@ def request_http():
             return ""
 
     def request_page_old(url):
-        print "Old request of %s"%url
-        f = urllib2.urlopen(url)
+        print("Old request of %s"%url)
+        f = urllib.request.urlopen(url)
         status_code = 200 #f.getcode()
         try:
             page = f.read()
         except:
             p_err("Error on HTTP request")
-            page = ""    
+            page = ""
         f.close()
         return page
-        
+
     return request_page_advanced if advanced else request_page_old
 
 def check_version(ref_version):
@@ -192,18 +195,18 @@ def check_version(ref_version):
     p_ok ("Lastes version is %s"%lastest_version)
     p_info ("You have version %s"%ref_version)
     sys.exit(0)
-    
+
 def download_last(ref_version, dest_fname, update):
     fn_get = request_http()
     lastest_url = "https://raw.githubusercontent.com/pasckosky/tools/master/dug/dist/lastest"
     lastest_version = fn_get(lastest_url).strip()
-    
+
     if update and lastest_version == ref_version:
         p_ok("You already have the last version")
         sys.exit(0)
     if update:
         p_info("You have version %s, downloading version %s"%(ref_version,lastest_version))
-    
+
     if lastest_version == "":
         p_err("Errors while checking lastest version")
         sys.exit(1)
@@ -212,7 +215,7 @@ def download_last(ref_version, dest_fname, update):
     if script_file == "":
         p_err("Errors while getting lastest version")
         sys.exit(1)
-        
+
     fout = open(dest_fname,"w")
     utf8 = codecs.getwriter('utf8')
     utf8(fout).write(script_file)
@@ -221,7 +224,7 @@ def download_last(ref_version, dest_fname, update):
     if not update:
         p_info("Move it wherever you please")
     sys.exit(0)
-    
+
 
 keyok = True
 download = False
@@ -297,11 +300,11 @@ cmd = [ "du", "-sk" ] + flist
 
 try:
     out = check_output(cmd)
-except CalledProcessError,e:
+except CalledProcessError as e:
     p_err("Some errors found while executing command. Output can be inaccurate")
     out = e.output
 
-dirs = [ x.split("\t") for x in out.split("\n") if len(x)>0 ]
+dirs = [ x.split(b"\t") for x in out.split(b"\n") if len(x)>0 ]
 
 total_k = sum([ int(a) for a,b in dirs ])
 max_k = max([ int(a) for a,b in dirs ])
@@ -341,7 +344,7 @@ def sorting(options, data):
 
             na = a[1]
             nb = b[1]
-            
+
             da = date_kb.get(na, None)
             db = date_kb.get(nb, None)
 
@@ -373,7 +376,7 @@ def sorting(options, data):
         if by_date:
             functions.append(cmp_date)
 
-            
+
         if len(functions)==0:
             # No sorting
             return None
@@ -395,11 +398,11 @@ def sorting(options, data):
         # No sorting
         return data
     # do sorting
-    return sorted(data,cmp_func)
+    return sorted(data, key=cmp_to_key(cmp_func))
 
 def identity(a):
     return a
-    
+
 rev = { True: reversed, False: identity}[options['reverse']]
 if total_k==0:
     total_k=1
@@ -424,7 +427,7 @@ def ralign(t,nch):
     if d > 0:
         t = " "*d + t
     return t
-    
+
 def bar(p, nmax, beauty):
     # s = u"░▏▎▍▌▋▊▉▉"
     if beauty:
@@ -436,7 +439,7 @@ def bar(p, nmax, beauty):
     nf = int(math.floor((n - ni)*len(s)))
     if ni == nmax:
         s = s[-1]*nmax
-    elif beauty:  
+    elif beauty:
         s = u"%s%s%s"%(s[-1]*ni,s[nf],s[0]*(nmax-ni-1))
     else:
         s = "%s%s%s"%(s[-1]*ni,s[nf],s[0]*(nmax-ni-1))
@@ -479,11 +482,12 @@ lenbar = 20
 if options['wide']:
     rows, columns = [ int(x) for x in os.popen('stty size', 'r').read().split() ]
     w0 = 19 if options['perc'] else 11
-    # Half of the screen for filenames    
+    # Half of the screen for filenames
     lenbar = (columns / 2) - w0
     if lenbar<10:
         # provide a minimum
         lenbar = 10
+lenbar = int(lenbar)
 
 if options['utf8']:
     beauty = True if sys.stdout.encoding == "UTF-8" else False
@@ -493,8 +497,8 @@ if options['utf8']:
         beauty=True
 else:
     beauty=False
-   
-        
+
+
 for k,n,p,b in data:
     p_out(fmt%{'size':ralign(hr(k),10),
                'perc':ralign("%.2f%%"%p, 7),
