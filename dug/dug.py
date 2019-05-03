@@ -3,15 +3,20 @@
 
 from __future__ import print_function
 
-import sys, os, re, glob, math
+import sys
+import os
+import re
+import glob
+import math
 import subprocess
 from subprocess import *
 import codecs
 from functools import cmp_to_key
 
-__version__ = "3.0.0"
+__version__ = "3.0.1"
 
 # ANSI COLOR SECTION
+
 
 def rgb(r,g,b, bgnd=False):
     assert( 0 <= r <=5)
@@ -20,22 +25,27 @@ def rgb(r,g,b, bgnd=False):
     code = 48 if bgnd else 38
     return "\x1b[%d;5;%dm"%(code,16+b+6*g+36*r)
 
+
 def gray(l, bgnd=False):
     assert( 0 <= l <= 23)
     code = 48 if bgnd else 38
     return "\x1b[%d;5;%dm"%(code,232+l)
 
+
 def reset_color():
     return "\x1b[0m"
+
 
 def std(l, bgnd=False):
     assert(0<=l<=15)
     code = 48 if bgnd else 38
     return "\x1b[%d;5;%dm"%(code,l)
 
+
 ASCII_ONLY = 1
 T16COLORS = 2
 T256COLORS = 3
+
 
 def typeofterm():
     term = os.environ.get("TERM","")
@@ -45,7 +55,6 @@ def typeofterm():
         return T16COLORS
     else:
         return ASCII_ONLY
-
 
 
 #END of ANSI
@@ -64,6 +73,7 @@ def check_output(*popenargs, **kwargs):
             cmd = popenargs[0]
         raise CalledProcessError(retcode, cmd, output=output)
     return output
+
 
 def show_help(x):
     def p(x):
@@ -93,9 +103,11 @@ def show_help(x):
     """)
     sys.exit(1)
 
+
 def unknown(cmd):
     print("Unknown option '%s'"%cmd, file=sys.stderr)
     show_help(None)
+
 
 flist = []
 options = {'sort_name': False,
@@ -111,8 +123,11 @@ options = {'sort_name': False,
            'colorvert': False,
            'ncolors': typeofterm(),
            }
+
+
 def setopt(key,value):
     options[key] = value
+
 
 option_map = {
     'h': show_help,
@@ -137,6 +152,7 @@ def p_ok(text, on_err=False):
     else:
         print("%s%s%s"%(std(2),text,reset_color()), file=fout)
 
+
 def p_info(text, on_err=False):
     fout = sys.stderr if on_err else sys.stdout
     if not options['color'] or options["ncolors"] == ASCII_ONLY:
@@ -144,15 +160,18 @@ def p_info(text, on_err=False):
     else:
         print("%s%s%s"%(std(3),text,reset_color()), file=fout)
 
+
 def p_err(text):
     if not options['color'] or options["ncolors"] == ASCII_ONLY:
         print(text, file=sys.stderr)
     else:
         print("%s%s%s"%(std(1),text,reset_color()), file=sys.stderr)
 
+
 def p_out(text, on_err=False):
     fout = sys.stderr if on_err else sys.stdout
     print(text, file=fout)
+
 
 def request_http():
     try:
@@ -160,7 +179,9 @@ def request_http():
         import requests
         advanced = True
     except:
-        import urllib.request, urllib.error, urllib.parse
+        import urllib.request
+        import urllib.error
+        import urllib.parse
         advanced = False
 
     def request_page_advanced(url):
@@ -188,6 +209,7 @@ def request_http():
 
     return request_page_advanced if advanced else request_page_old
 
+
 def check_version(ref_version):
     fn_get = request_http()
     lastest_url = "https://raw.githubusercontent.com/pasckosky/tools/master/dug/dist/lastest"
@@ -195,6 +217,7 @@ def check_version(ref_version):
     p_ok ("Lastes version is %s"%lastest_version)
     p_info ("You have version %s"%ref_version)
     sys.exit(0)
+
 
 def download_last(ref_version, dest_fname, update):
     fn_get = request_http()
@@ -205,7 +228,8 @@ def download_last(ref_version, dest_fname, update):
         p_ok("You already have the last version")
         sys.exit(0)
     if update:
-        p_info("You have version %s, downloading version %s"%(ref_version,lastest_version))
+        p_info("You have version %s, downloading version %s" %
+               (ref_version, lastest_version))
 
     if lastest_version == "":
         p_err("Errors while checking lastest version")
@@ -220,7 +244,8 @@ def download_last(ref_version, dest_fname, update):
     utf8 = codecs.getwriter('utf8')
     utf8(fout).write(script_file)
     fout.close()
-    p_ok("File version %s has been saved as %s"%(lastest_version,dest_fname))
+    p_ok("File version %s has been saved as %s" %
+         (lastest_version, dest_fname))
     if not update:
         p_info("Move it wherever you please")
     sys.exit(0)
@@ -266,8 +291,10 @@ for x in sys.argv[1:]:
 if download:
     download_last(__version__, "/tmp/dug.py", False)
 
+
 def flatten(l):
     return [ item for sublist in l for item in sublist ]
+
 
 if len(flist)==0:
     flist = ['.']
@@ -278,9 +305,11 @@ if options['all']:
     flist = [ glob.glob(pattern) for pattern in flist ]
     flist = flatten(flist)
 
+
 def get_stdin():
     y = sys.stdin.read()
     return [ x.strip() for x in y.split("\n") if len(x.strip())!=0]
+
 
 if None in flist:
     p_info("Getting list from stdin",True)
@@ -309,13 +338,16 @@ dirs = [ x.split(b"\t") for x in out.split(b"\n") if len(x)>0 ]
 total_k = sum([ int(a) for a,b in dirs ])
 max_k = max([ int(a) for a,b in dirs ])
 
+
 def undot(s):
     d, f = os.path.dirname(s), os.path.basename(s)
     if f[0] == '.':
         f = f[1:]
     return os.path.join(d,f)
 
+
 date_kb = {}
+
 
 def sorting(options, data):
 
@@ -376,7 +408,6 @@ def sorting(options, data):
         if by_date:
             functions.append(cmp_date)
 
-
         if len(functions)==0:
             # No sorting
             return None
@@ -393,22 +424,27 @@ def sorting(options, data):
         return cmp_combined
 
     # Choose comparer and apply it, if found
-    cmp_func = choose_compare(options['sort_name'],options['sort_name_natural'],options['sort_size'],options['sort_date'])
+    cmp_func = choose_compare(
+        options['sort_name'], options['sort_name_natural'], options['sort_size'], options['sort_date'])
     if cmp_func is None:
         # No sorting
         return data
     # do sorting
     return sorted(data, key=cmp_to_key(cmp_func))
 
+
 def identity(a):
     return a
+
 
 rev = { True: reversed, False: identity}[options['reverse']]
 if total_k==0:
     total_k=1
 if max_k==0:
     max_k=1
-data = [ (int(k),n, (float(k)*100./total_k), (float(k)*100./max_k)) for k,n in rev(sorting(options,dirs)) ]
+data = [(int(k), n, (float(k)*100./total_k), (float(k)*100./max_k))
+        for k, n in rev(sorting(options, dirs))]
+
 
 def hr(k):
     if k<1024:
@@ -422,11 +458,13 @@ def hr(k):
     k/=1024.
     return "%.1f TB"%k
 
+
 def ralign(t,nch):
     d = nch - len(t)
     if d > 0:
         t = " "*d + t
     return t
+
 
 def bar(p, nmax, beauty):
     # s = u"░▏▎▍▌▋▊▉▉"
@@ -461,7 +499,8 @@ def bar(p, nmax, beauty):
             return u"%(cg)s%(g)s%(cy)s%(y)s%(cr)s%(r)s%(end)s"%data
         else:
             ns = int(round(nmax/6.))
-            sect = u"".join([ u"".join((rgb(x,5-x,0),s[x*ns:(x+1)*ns])) for x in range(6) ])
+            sect = u"".join(
+                [u"".join((rgb(x, 5-x, 0), s[x*ns:(x+1)*ns])) for x in range(6)])
             sect+= s[6*ns:]
             return sect+reset_color()
     elif options["ncolors"] == T16COLORS:
@@ -475,6 +514,7 @@ def bar(p, nmax, beauty):
     else:
         pc = p/100.*5
         return u"%s%s%s"%(rgb(pc,5-pc,0),s,reset_color())
+
 
 fmt = u"%(size)s %(perc)s %(bar)s %(name)s" if options['perc'] else u"%(size)s %(bar)s %(name)s"
 
