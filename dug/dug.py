@@ -512,7 +512,7 @@ def bar(p, nmax, beauty):
             col = 1 # red
         return u"%s%s%s"%(std(col),s,reset_color())
     else:
-        pc = p/100.*5
+        pc = round(p/100.*5)
         return u"%s%s%s"%(rgb(pc,5-pc,0),s,reset_color())
 
 
