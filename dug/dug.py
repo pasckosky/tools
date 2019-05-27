@@ -13,7 +13,7 @@ from subprocess import *
 import codecs
 from functools import cmp_to_key
 
-__version__ = "3.0.2"
+__version__ = "3.0.2.1"
 
 # ANSI COLOR SECTION
 
@@ -468,7 +468,7 @@ def ralign(t, nch):
 
 def calc_perc(p, b, nmax):
     t = ralign("%.2f%%" % p, 7)
-    if not options['color'] or options["ncolors"] == ASCII_ONLY:
+    if not options['color'] or options["ncolors"] == ASCII_ONLY or not options['perc']:
         return t
 
     n = b/100.*nmax
