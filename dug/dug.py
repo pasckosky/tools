@@ -13,7 +13,7 @@ from subprocess import *
 import codecs
 from functools import cmp_to_key
 
-__version__ = "3.0.1"
+__version__ = "3.0.2"
 
 # ANSI COLOR SECTION
 
