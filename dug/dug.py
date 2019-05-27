@@ -466,6 +466,26 @@ def ralign(t,nch):
     return t
 
 
+def calc_perc(p, b, nmax):
+    t = ralign("%.2f%%" % p, 7)
+    if not options['color'] or options["ncolors"] == ASCII_ONLY:
+        return t
+
+    n = b/100.*nmax
+    if options['ncolors'] == T16COLORS:
+        if n <= 33.33:
+            col = std(2)
+        elif n <= 66.66:
+            col = std(3)
+        else:
+            col = std(1)
+    else:
+        pc = round(n/100.*5)
+        col = rgb(pc, 5-pc, 0)
+
+    return u"%s%s%s" % (col, t, reset_color())
+
+
 def bar(p, nmax, beauty):
     # s = u"░▏▎▍▌▋▊▉▉"
     if beauty:
@@ -538,14 +558,16 @@ if options['utf8']:
 else:
     beauty=False
 
+    beauty = False
 
-for k,n,p,b in data:
-    p_out(fmt%{'size':ralign(hr(k),10),
-               'perc':ralign("%.2f%%"%p, 7),
-               'bar':bar(b,lenbar,beauty),
-               'name':n.decode('utf-8')
-               })
-p_out(fmt%{'size':ralign(hr(total_k),10),
-           'perc':ralign("100%", 7),
-           'bar':ralign("",lenbar),
-           'name': "Total"})
+
+for k, n, p, b in data:
+    p_out(fmt % {'size': ralign(hr(k), 10),
+                 'perc': calc_perc(p, b, lenbar),
+                 'bar': bar(b, lenbar, beauty),
+                 'name': n.decode('utf-8')
+                 })
+p_out(fmt % {'size': ralign(hr(total_k), 10),
+             'perc': ralign("100%", 7),
+             'bar': ralign("", lenbar),
+             'name': "Total"})
