@@ -473,14 +473,14 @@ def calc_perc(p, b, nmax):
 
     n = b/100.*nmax
     if options['ncolors'] == T16COLORS:
-        if n <= 33.33:
+        if b <= 33.33:
             col = std(2)
-        elif n <= 66.66:
+        elif b <= 66.66:
             col = std(3)
         else:
             col = std(1)
     else:
-        pc = round(n/100.*5)
+        pc = round(b/100.*5)
         col = rgb(pc, 5-pc, 0)
 
     return u"%s%s%s" % (col, t, reset_color())
