@@ -13,7 +13,7 @@ from subprocess import *
 import codecs
 from functools import cmp_to_key
 
-__version__ = "3.0.2.1"
+__version__ = "3.0.3"
 
 # ANSI COLOR SECTION
 
@@ -240,7 +240,7 @@ def download_last(ref_version, dest_fname, update):
         p_err("Errors while getting lastest version")
         sys.exit(1)
 
-    fout = open(dest_fname, "w")
+    fout = open(dest_fname, "wb")
     utf8 = codecs.getwriter('utf8')
     utf8(fout).write(script_file)
     fout.close()
@@ -549,10 +549,23 @@ if options['wide']:
         lenbar = 10
 lenbar = int(lenbar)
 
+
+def is3_8(v):
+    if v.major == 3:  # and v.minor >= 8:
+        return True
+    elif v.major > 3:
+        return True
+    return False
+
+
 if options['utf8']:
     beauty = True if sys.stdout.encoding == "UTF-8" else False
     if not beauty:
         utf8 = codecs.getwriter('utf8')
+        if sys.version_info.major >= 3:
+            # for Python3 we want stdout as binary stream
+            # in order to use stream rewriter
+            sys.stdout = os.fdopen(sys.stdout.fileno(), "wb", closefd=False)
         sys.stdout = utf8(sys.stdout)
         beauty = True
 else:
